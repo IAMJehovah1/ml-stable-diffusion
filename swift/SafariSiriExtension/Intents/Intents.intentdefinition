@@ -1,0 +1,95 @@
+{
+  "intents": [
+    {
+      "name": "SearchAssistance",
+      "title": "Search Assistance",
+      "description": "Get ML-powered suggestions for web searches",
+      "category": "information",
+      "parameters": [
+        {
+          "name": "searchQuery",
+          "title": "Search Query",
+          "description": "The search query to analyze",
+          "type": "String",
+          "required": true,
+          "supportsResolution": true
+        }
+      ],
+      "response": {
+        "properties": [
+          {
+            "name": "suggestions",
+            "title": "Suggestions",
+            "description": "ML-generated content suggestions",
+            "type": "Array",
+            "itemType": "String"
+          },
+          {
+            "name": "relevanceScore",
+            "title": "Relevance Score",
+            "description": "Relevance score for the query",
+            "type": "Number"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateMLProfile",
+      "title": "Update ML Profile",
+      "description": "Update user's machine learning profile preferences",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "keywords",
+          "title": "Keywords",
+          "description": "Keywords for content filtering",
+          "type": "Array",
+          "itemType": "String",
+          "required": true
+        },
+        {
+          "name": "preferences",
+          "title": "Preferences",
+          "description": "User preferences as JSON",
+          "type": "String",
+          "required": false
+        }
+      ],
+      "response": {
+        "properties": [
+          {
+            "name": "success",
+            "title": "Success",
+            "description": "Whether the update was successful",
+            "type": "Boolean"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HighlightContent",
+      "title": "Highlight Content",
+      "description": "Highlight relevant content on current web page",
+      "category": "view",
+      "parameters": [
+        {
+          "name": "enableHighlighting",
+          "title": "Enable Highlighting",
+          "description": "Enable or disable content highlighting",
+          "type": "Boolean",
+          "required": true
+        }
+      ],
+      "response": {
+        "properties": [
+          {
+            "name": "highlightCount",
+            "title": "Highlight Count",
+            "description": "Number of highlights applied",
+            "type": "Number"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -15,7 +15,10 @@ let package = Package(
             targets: ["StableDiffusion"]),
         .executable(
             name: "StableDiffusionSample",
-            targets: ["StableDiffusionCLI"])
+            targets: ["StableDiffusionCLI"]),
+        .library(
+            name: "SafariSiriExtension",
+            targets: ["SafariSiriExtension"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.3"),
@@ -34,6 +37,18 @@ let package = Package(
                 "StableDiffusion",
                 .product(name: "ArgumentParser", package: "swift-argument-parser")],
             path: "swift/StableDiffusionCLI"),
+        .target(
+            name: "SafariSiriExtension",
+            dependencies: [],
+            path: "swift/SafariSiriExtension",
+            resources: [
+                .copy("Resources/content.js"),
+                .copy("Intents/Intents.intentdefinition")
+            ]),
+        .testTarget(
+            name: "SafariSiriExtensionTests",
+            dependencies: ["SafariSiriExtension"],
+            path: "swift/SafariSiriExtensionTests"),
         .testTarget(
             name: "StableDiffusionTests",
             dependencies: ["StableDiffusion"],
