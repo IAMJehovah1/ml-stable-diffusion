@@ -1,0 +1,126 @@
+{
+  "name": "SafariSiri Extension Orb",
+  "version": "1.0.0",
+  "description": "ML-powered Safari extension with Siri integration for intelligent web search assistance",
+  
+  "configuration": {
+    "mlProfile": {
+      "defaultKeywords": [
+        "technology",
+        "science",
+        "innovation",
+        "AI",
+        "machine learning",
+        "programming",
+        "research",
+        "development"
+      ],
+      "preferences": {
+        "autoHighlight": true,
+        "highlightColor": "#ffeb3b",
+        "priorityHighlightColor": "#ff9800",
+        "minRelevanceScore": 0.5,
+        "maxSuggestions": 10
+      }
+    },
+    
+    "highlighting": {
+      "enabled": true,
+      "borderRadius": "3px",
+      "padding": "2px 4px",
+      "transition": "background-color 0.3s ease"
+    },
+    
+    "contentAnalysis": {
+      "maxContentLength": 5000,
+      "enableSentimentAnalysis": true,
+      "enableEntityRecognition": true,
+      "enableKeywordExtraction": true
+    },
+    
+    "siriIntegration": {
+      "enabled": true,
+      "supportedIntents": [
+        "SearchAssistanceIntent",
+        "UpdateMLProfileIntent",
+        "HighlightContentIntent"
+      ],
+      "voiceCommands": [
+        "Hey Siri, highlight content",
+        "Hey Siri, help me with my search",
+        "Hey Siri, update my profile"
+      ]
+    }
+  },
+  
+  "permissions": {
+    "required": [
+      "com.apple.Safari.extension",
+      "com.apple.security.app-sandbox"
+    ],
+    "optional": [
+      "com.apple.developer.siri"
+    ]
+  },
+  
+  "systemRequirements": {
+    "macOS": "13.0+",
+    "Safari": "16.0+",
+    "Swift": "5.8+",
+    "Xcode": "14.3+"
+  },
+  
+  "features": {
+    "contentHighlighting": {
+      "description": "Automatically highlights relevant content based on ML profile",
+      "colorCoding": {
+        "standard": "#ffeb3b",
+        "highPriority": "#ff9800"
+      }
+    },
+    "siriAssistance": {
+      "description": "Voice-activated search assistance and content highlighting",
+      "commands": [
+        "Highlight content",
+        "Search assistance",
+        "Update profile"
+      ]
+    },
+    "mlAnalysis": {
+      "description": "Real-time ML-powered content analysis",
+      "capabilities": [
+        "Sentiment analysis",
+        "Entity recognition",
+        "Keyword extraction",
+        "Relevance scoring"
+      ]
+    }
+  },
+  
+  "examples": {
+    "basicUsage": {
+      "createProfile": "MLProfile()",
+      "analyzeContent": "ContentAnalyzer().analyzeContent(text, profile: profile)",
+      "generateSuggestions": "ContentAnalyzer().generateSuggestions(query: query, profile: profile, context: context)"
+    },
+    "siriCommands": {
+      "highlight": "Hey Siri, highlight content",
+      "search": "Hey Siri, help me with machine learning",
+      "updateProfile": "Hey Siri, update my profile with keywords: AI, technology"
+    }
+  },
+  
+  "documentation": {
+    "readme": "swift/SafariSiriExtension/README.md",
+    "integrationGuide": "swift/SafariSiriExtension/INTEGRATION_GUIDE.md",
+    "examples": "swift/SafariSiriExtension/SafariSiriExtensionExample.swift",
+    "tests": "swift/SafariSiriExtensionTests/SafariSiriExtensionTests.swift"
+  },
+  
+  "privacy": {
+    "dataCollection": "None - All processing happens on-device",
+    "externalServers": "No data sent to external servers",
+    "localStorage": "ML profile stored locally using UserDefaults",
+    "coreMlProcessing": "All ML analysis uses Core ML on-device"
+  }
+}
