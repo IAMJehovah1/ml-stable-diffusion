@@ -72,13 +72,7 @@ struct DiscoverNeuralEngine: ParsableCommand {
     }
     
     private func computeUnitsDescription(_ units: MLComputeUnits) -> String {
-        switch units {
-        case .all: return "All (CPU, GPU, Neural Engine)"
-        case .cpuAndGPU: return "CPU and GPU"
-        case .cpuOnly: return "CPU Only"
-        case .cpuAndNeuralEngine: return "CPU and Neural Engine"
-        @unknown default: return "Unknown"
-        }
+        return NeuralEngineDiscovery.computeUnitsDescription(units)
     }
 }
 
@@ -198,7 +192,7 @@ struct Generate: ParsableCommand {
                 reduceMemory = optimizedConfig.reduceMemory
             }
             
-            log("   Compute Units: \(computeUnitsDescription(optimizedConfig.computeUnits))\n")
+            log("   Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimizedConfig.computeUnits))\n")
             log("   Memory Mode: \(reduceMemory ? "Reduced" : "Normal")\n")
         } else {
             config.computeUnits = computeUnits.asMLComputeUnits
@@ -462,16 +456,6 @@ enum RNGOption: String, ExpressibleByArgument {
 
 @available(iOS 16.2, macOS 13.1, *)
 extension Script: ExpressibleByArgument {}
-
-func computeUnitsDescription(_ units: MLComputeUnits) -> String {
-    switch units {
-    case .all: return "All (CPU, GPU, Neural Engine)"
-    case .cpuAndGPU: return "CPU and GPU"
-    case .cpuOnly: return "CPU Only"
-    case .cpuAndNeuralEngine: return "CPU and Neural Engine"
-    @unknown default: return "Unknown"
-    }
-}
 
 if #available(iOS 16.2, macOS 13.1, *) {
     StableDiffusionCLI.main()

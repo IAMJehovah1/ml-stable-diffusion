@@ -181,6 +181,9 @@ public class NeuralEngineDiscovery {
     
     // MARK: - Private Detection Methods
     
+    /// Memory threshold below which reduced memory mode is recommended
+    private static let lowMemoryThresholdGB: Double = 6.0
+    
     private func getModelIdentifier() -> String {
         #if os(iOS)
         var systemInfo = utsname()
@@ -194,9 +197,13 @@ public class NeuralEngineDiscovery {
         #elseif os(macOS)
         // For macOS, use sysctl to get hardware model
         var size = 0
-        sysctlbyname("hw.model", nil, &size, nil, 0)
+        guard sysctlbyname("hw.model", nil, &size, nil, 0) == 0 else {
+            return "Unknown-Mac"
+        }
         var model = [CChar](repeating: 0, count: size)
-        sysctlbyname("hw.model", &model, &size, nil, 0)
+        guard sysctlbyname("hw.model", &model, &size, nil, 0) == 0 else {
+            return "Unknown-Mac"
+        }
         return String(cString: model)
         #else
         return "Unknown"
@@ -204,69 +211,60 @@ public class NeuralEngineDiscovery {
     }
     
     private func detectNeuralEngineGeneration(from modelIdentifier: String) -> NeuralEngineGeneration {
-        // iPad Pro with M4
-        if modelIdentifier.hasPrefix("iPad16,") {
-            return .m4
-        }
+        // Device model prefixes mapped to Neural Engine generations
+        // This mapping needs updates when new devices are released
+        let deviceMapping: [(prefix: String, generation: NeuralEngineGeneration)] = [
+            // iPad Pro with M4 (latest)
+            ("iPad16,", .m4),
+            
+            // iPad Pro with M2
+            ("iPad14,5", .m2),
+            ("iPad14,6", .m2),
+            
+            // iPad Pro with M1
+            ("iPad13,", .m1),
+            
+            // iPhone 15 Pro (A17 Pro)
+            ("iPhone16,1", .a17Pro),
+            ("iPhone16,2", .a17Pro),
+            
+            // iPhone 15 (A16)
+            ("iPhone15,4", .a16),
+            ("iPhone15,5", .a16),
+            
+            // iPhone 14 Pro (A16)
+            ("iPhone15,2", .a16),
+            ("iPhone15,3", .a16),
+            
+            // iPhone 14 (A15)
+            ("iPhone14,7", .a15),
+            ("iPhone14,8", .a15),
+            
+            // iPhone 13 series (A15)
+            ("iPhone14,", .a15),
+            
+            // iPhone 12 series (A14)
+            ("iPhone13,", .a14),
+            
+            // MacBook with M4
+            ("Mac16,", .m4),
+            
+            // Mac with M3
+            ("Mac15,", .m3),
+            
+            // Mac with M2
+            ("Mac14,", .m2),
+            
+            // Mac with M1
+            ("Mac13,", .m1),
+            ("Macmini9,", .m1),
+        ]
         
-        // iPad Pro with M2
-        if modelIdentifier.hasPrefix("iPad14,5") || modelIdentifier.hasPrefix("iPad14,6") {
-            return .m2
-        }
-        
-        // iPad Pro with M1
-        if modelIdentifier.hasPrefix("iPad13,") {
-            return .m1
-        }
-        
-        // iPhone 15 Pro (A17 Pro)
-        if modelIdentifier.hasPrefix("iPhone16,1") || modelIdentifier.hasPrefix("iPhone16,2") {
-            return .a17Pro
-        }
-        
-        // iPhone 15 (A16)
-        if modelIdentifier.hasPrefix("iPhone15,4") || modelIdentifier.hasPrefix("iPhone15,5") {
-            return .a16
-        }
-        
-        // iPhone 14 Pro (A16)
-        if modelIdentifier.hasPrefix("iPhone15,2") || modelIdentifier.hasPrefix("iPhone15,3") {
-            return .a16
-        }
-        
-        // iPhone 14 (A15)
-        if modelIdentifier.hasPrefix("iPhone14,7") || modelIdentifier.hasPrefix("iPhone14,8") {
-            return .a15
-        }
-        
-        // iPhone 13 series (A15)
-        if modelIdentifier.hasPrefix("iPhone14,") {
-            return .a15
-        }
-        
-        // iPhone 12 series (A14)
-        if modelIdentifier.hasPrefix("iPhone13,") {
-            return .a14
-        }
-        
-        // MacBook with M4
-        if modelIdentifier.contains("Mac16,") {
-            return .m4
-        }
-        
-        // Mac with M3
-        if modelIdentifier.contains("Mac15,") {
-            return .m3
-        }
-        
-        // Mac with M2
-        if modelIdentifier.contains("Mac14,") {
-            return .m2
-        }
-        
-        // Mac with M1
-        if modelIdentifier.contains("Mac13,") || modelIdentifier.contains("Macmini9,") {
-            return .m1
+        // Check each mapping in order
+        for mapping in deviceMapping {
+            if modelIdentifier.hasPrefix(mapping.prefix) || modelIdentifier.contains(mapping.prefix) {
+                return mapping.generation
+            }
         }
         
         return .unknown
@@ -289,6 +287,11 @@ public class NeuralEngineDiscovery {
     }
     
     private func computeUnitsDescription(_ units: MLComputeUnits) -> String {
+        return NeuralEngineDiscovery.computeUnitsDescription(units)
+    }
+    
+    /// Public utility function for describing compute units
+    public static func computeUnitsDescription(_ units: MLComputeUnits) -> String {
         switch units {
         case .all: return "All (CPU, GPU, Neural Engine)"
         case .cpuAndGPU: return "CPU and GPU"
@@ -325,7 +328,7 @@ public struct NeuralEngineOptimizedConfiguration {
         let neuralEngine = capabilities.neuralEngine
         
         // Determine if we should reduce memory based on available RAM
-        let reduceMemory = capabilities.availableMemoryGB < 6.0
+        let reduceMemory = capabilities.availableMemoryGB < NeuralEngineDiscovery.lowMemoryThresholdGB
         
         // Determine optimal quantization
         let quantizationBits: Int?

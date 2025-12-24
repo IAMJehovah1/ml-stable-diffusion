@@ -204,7 +204,7 @@ public extension StableDiffusionPipeline {
         
         // Log optimization choices
         print("🔧 Neural Engine Optimization Applied:")
-        print("   - Compute Units: \(computeUnitsDescription(optimizedConfig.computeUnits))")
+        print("   - Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimizedConfig.computeUnits))")
         print("   - Reduce Memory: \(optimizedConfig.reduceMemory)")
         print("   - Attention: \(optimizedConfig.attentionImplementation)")
         if let bits = optimizedConfig.recommendedQuantizationBits {
@@ -221,15 +221,5 @@ public extension StableDiffusionPipeline {
             useMultilingualTextEncoder: useMultilingualTextEncoder,
             script: script
         )
-    }
-    
-    private static func computeUnitsDescription(_ units: MLComputeUnits) -> String {
-        switch units {
-        case .all: return "All (CPU, GPU, Neural Engine)"
-        case .cpuAndGPU: return "CPU and GPU"
-        case .cpuOnly: return "CPU Only"
-        case .cpuAndNeuralEngine: return "CPU and Neural Engine"
-        @unknown default: return "Unknown"
-        }
     }
 }

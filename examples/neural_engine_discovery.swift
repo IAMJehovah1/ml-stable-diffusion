@@ -34,7 +34,7 @@ func main() {
     let optimizedConfig = NeuralEngineOptimizedConfiguration.optimized(for: capabilities)
     
     print("⚙️  Recommended Configuration:")
-    print("   Compute Units: \(computeUnitsName(optimizedConfig.computeUnits))")
+    print("   Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimizedConfig.computeUnits))")
     print("   Memory Mode: \(optimizedConfig.reduceMemory ? "Reduced" : "Normal")")
     print("   Attention: \(optimizedConfig.attentionImplementation)")
     
@@ -63,16 +63,6 @@ func main() {
     discovery.printCapabilitiesReport()
     
     print("\n✅ Discovery complete!")
-}
-
-func computeUnitsName(_ units: MLComputeUnits) -> String {
-    switch units {
-    case .all: return "All (CPU + GPU + Neural Engine)"
-    case .cpuAndGPU: return "CPU + GPU"
-    case .cpuOnly: return "CPU Only"
-    case .cpuAndNeuralEngine: return "CPU + Neural Engine"
-    @unknown default: return "Unknown"
-    }
 }
 
 if #available(iOS 16.2, macOS 13.1, *) {
