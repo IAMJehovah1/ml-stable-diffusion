@@ -175,7 +175,7 @@ public class NeuralEngineDiscovery {
         print("Available Memory: ~\(String(format: "%.1f", capabilities.availableMemoryGB)) GB")
         print("Supports int8 Quantization: \(capabilities.neuralEngine.supportsInt8Quantization)")
         print("Supports 6-bit Compression: \(capabilities.neuralEngine.supports6BitCompression)")
-        print("Recommended Compute Units: \(computeUnitsDescription(capabilities.recommendedComputeUnits))")
+        print("Recommended Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(capabilities.recommendedComputeUnits))")
         print("======================================")
     }
     
@@ -183,6 +183,9 @@ public class NeuralEngineDiscovery {
     
     /// Memory threshold below which reduced memory mode is recommended
     private static let lowMemoryThresholdGB: Double = 6.0
+    
+    /// Success code for sysctl system calls
+    private static let sysctlSuccess: Int32 = 0
     
     private func getModelIdentifier() -> String {
         #if os(iOS)
@@ -197,11 +200,11 @@ public class NeuralEngineDiscovery {
         #elseif os(macOS)
         // For macOS, use sysctl to get hardware model
         var size = 0
-        guard sysctlbyname("hw.model", nil, &size, nil, 0) == 0 else {
+        guard sysctlbyname("hw.model", nil, &size, nil, 0) == Self.sysctlSuccess else {
             return "Unknown-Mac"
         }
         var model = [CChar](repeating: 0, count: size)
-        guard sysctlbyname("hw.model", &model, &size, nil, 0) == 0 else {
+        guard sysctlbyname("hw.model", &model, &size, nil, 0) == Self.sysctlSuccess else {
             return "Unknown-Mac"
         }
         return String(cString: model)
@@ -284,10 +287,6 @@ public class NeuralEngineDiscovery {
     private func getAvailableMemoryGB() -> Double {
         let physicalMemory = Double(ProcessInfo.processInfo.physicalMemory)
         return physicalMemory / (1024 * 1024 * 1024)  // Convert to GB
-    }
-    
-    private func computeUnitsDescription(_ units: MLComputeUnits) -> String {
-        return NeuralEngineDiscovery.computeUnitsDescription(units)
     }
     
     /// Public utility function for describing compute units

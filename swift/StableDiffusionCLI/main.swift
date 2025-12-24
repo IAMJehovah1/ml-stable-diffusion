@@ -11,6 +11,13 @@ import Cocoa
 import CoreImage
 import NaturalLanguage
 
+// MARK: - Shared Utilities
+
+/// Logging utility function
+func log(_ str: String, term: String = "") {
+    print(str, terminator: term)
+}
+
 @available(iOS 16.2, macOS 13.1, *)
 struct StableDiffusionCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -49,7 +56,7 @@ struct DiscoverNeuralEngine: ParsableCommand {
             
             log("\nOptimization Recommendations:")
             let optimized = NeuralEngineOptimizedConfiguration.optimized(for: capabilities)
-            log("  - Compute Units: \(computeUnitsDescription(optimized.computeUnits))")
+            log("  - Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimized.computeUnits))")
             log("  - Memory Mode: \(optimized.reduceMemory ? "Reduced" : "Normal")")
             log("  - Attention Implementation: \(optimized.attentionImplementation)")
             if let bits = optimized.recommendedQuantizationBits {
@@ -69,10 +76,6 @@ struct DiscoverNeuralEngine: ParsableCommand {
         }
         
         log("\n✅ Discovery complete!\n")
-    }
-    
-    private func computeUnitsDescription(_ units: MLComputeUnits) -> String {
-        return NeuralEngineDiscovery.computeUnitsDescription(units)
     }
 }
 
@@ -405,10 +408,6 @@ struct Generate: ParsableCommand {
         }
         name += ".png"
         return name
-    }
-
-    func log(_ str: String, term: String = "") {
-        print(str, terminator: term)
     }
 }
 
