@@ -11,12 +11,79 @@ import Cocoa
 import CoreImage
 import NaturalLanguage
 
+// MARK: - Shared Utilities
+
+/// Logging utility function
+func log(_ str: String, term: String = "") {
+    print(str, terminator: term)
+}
+
 @available(iOS 16.2, macOS 13.1, *)
-struct StableDiffusionSample: ParsableCommand {
+struct StableDiffusionCLI: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Core ML Stable Diffusion tools with Neural Engine optimization",
+        version: "0.1",
+        subcommands: [Generate.self, DiscoverNeuralEngine.self],
+        defaultSubcommand: Generate.self
+    )
+}
+
+@available(iOS 16.2, macOS 13.1, *)
+struct DiscoverNeuralEngine: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Discover Neural Engine capabilities and optimal settings for this device"
+    )
+    
+    @Flag(help: "Show detailed device information")
+    var verbose: Bool = false
+    
+    mutating func run() throws {
+        log("🧠 Neural Engine Discovery Tool\n")
+        log("================================\n\n")
+        
+        let discovery = NeuralEngineDiscovery.shared
+        discovery.printCapabilitiesReport()
+        
+        if verbose {
+            log("\n📊 Detailed Information:\n")
+            let capabilities = discovery.discoverCapabilities()
+            
+            log("Performance Characteristics:")
+            log("  - Neural Engine Generation: \(capabilities.neuralEngine.description)")
+            log("  - Number of Cores: \(capabilities.neuralEngine.neuralEngineCores)")
+            log("  - Theoretical Performance: \(capabilities.neuralEngine.neuralEngineTOPS) TOPS")
+            log("  - Advanced Features: \(capabilities.supportsAdvancedNeuralEngine ? "Yes" : "No")")
+            
+            log("\nOptimization Recommendations:")
+            let optimized = NeuralEngineOptimizedConfiguration.optimized(for: capabilities)
+            log("  - Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimized.computeUnits))")
+            log("  - Memory Mode: \(optimized.reduceMemory ? "Reduced" : "Normal")")
+            log("  - Attention Implementation: \(optimized.attentionImplementation)")
+            if let bits = optimized.recommendedQuantizationBits {
+                log("  - Quantization: \(bits)-bit")
+            } else {
+                log("  - Quantization: Not recommended")
+            }
+            
+            log("\nFor Model Conversion:")
+            log("  python -m python_coreml_stable_diffusion.torch2coreml \\")
+            log("    --compute-unit CPU_AND_NE \\")
+            log("    --attention-implementation \(optimized.attentionImplementation) \\")
+            if let bits = optimized.recommendedQuantizationBits {
+                log("    --quantize-nbits \(bits) \\")
+            }
+            log("    ... [other options]")
+        }
+        
+        log("\n✅ Discovery complete!\n")
+    }
+}
+
+@available(iOS 16.2, macOS 13.1, *)
+struct Generate: ParsableCommand {
 
     static let configuration = CommandConfiguration(
-        abstract: "Run stable diffusion to generate images guided by a text prompt",
-        version: "0.1"
+        abstract: "Run stable diffusion to generate images guided by a text prompt"
     )
 
     @Argument(help: "Input string prompt")
@@ -103,6 +170,9 @@ struct StableDiffusionSample: ParsableCommand {
 
     @Option(help: "The natural language script for the multilingual contextual embedding")
     var script: Script = .latin
+    
+    @Flag(help: "Auto-detect and use optimal Neural Engine settings for this device")
+    var autoOptimize: Bool = false
 
     mutating func run() throws {
         guard FileManager.default.fileExists(atPath: resourcePath) else {
@@ -110,7 +180,27 @@ struct StableDiffusionSample: ParsableCommand {
         }
 
         let config = MLModelConfiguration()
-        config.computeUnits = computeUnits.asMLComputeUnits
+        
+        // Apply Neural Engine auto-optimization if requested
+        if autoOptimize {
+            let discovery = NeuralEngineDiscovery.shared
+            let capabilities = discovery.discoverCapabilities()
+            log("🧠 Neural Engine Auto-Optimization Enabled\n")
+            log("   Device: \(capabilities.neuralEngine.description)\n")
+            
+            let optimizedConfig = NeuralEngineOptimizedConfiguration.optimized(for: capabilities)
+            config.computeUnits = optimizedConfig.computeUnits
+            
+            if !reduceMemory {
+                reduceMemory = optimizedConfig.reduceMemory
+            }
+            
+            log("   Compute Units: \(NeuralEngineDiscovery.computeUnitsDescription(optimizedConfig.computeUnits))\n")
+            log("   Memory Mode: \(reduceMemory ? "Reduced" : "Normal")\n")
+        } else {
+            config.computeUnits = computeUnits.asMLComputeUnits
+        }
+        
         let resourceURL = URL(filePath: resourcePath)
 
         log("Loading resources and creating pipeline\n")
@@ -319,10 +409,6 @@ struct StableDiffusionSample: ParsableCommand {
         name += ".png"
         return name
     }
-
-    func log(_ str: String, term: String = "") {
-        print(str, terminator: term)
-    }
 }
 
 enum RunError: Error {
@@ -371,7 +457,7 @@ enum RNGOption: String, ExpressibleByArgument {
 extension Script: ExpressibleByArgument {}
 
 if #available(iOS 16.2, macOS 13.1, *) {
-    StableDiffusionSample.main()
+    StableDiffusionCLI.main()
 } else {
     print("Unsupported OS")
 }
