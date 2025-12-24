@@ -163,4 +163,73 @@ public extension StableDiffusionPipeline {
             )
         }
     }
+    
+    /// Create stable diffusion pipeline with Neural Engine auto-discovery and optimization
+    ///
+    /// This initializer automatically detects the device's Neural Engine capabilities
+    /// and configures the pipeline with optimal settings for M4, M2, M1, and A-series chips.
+    ///
+    /// - Parameters:
+    ///   - baseURL: URL pointing to directory holding all model and tokenization resources
+    ///   - controlNetModelNames: Specify ControlNet models to use in generation
+    ///   - disableSafety: Load time disable of safety to save memory
+    ///   - useMultilingualTextEncoder: Option to use system multilingual NLContextualEmbedding as encoder
+    ///   - script: Optional natural language script to use for the text encoder.
+    ///   - printDiscoveryReport: Whether to print Neural Engine discovery report
+    /// - Returns:
+    ///  Pipeline ready for image generation with optimized Neural Engine configuration
+    static func createWithNeuralEngineDiscovery(
+        resourcesAt baseURL: URL,
+        controlNet controlNetModelNames: [String] = [],
+        disableSafety: Bool = false,
+        useMultilingualTextEncoder: Bool = false,
+        script: Script? = nil,
+        printDiscoveryReport: Bool = true
+    ) throws -> StableDiffusionPipeline {
+        
+        // Discover device capabilities
+        let discovery = NeuralEngineDiscovery.shared
+        let capabilities = discovery.discoverCapabilities()
+        
+        if printDiscoveryReport {
+            discovery.printCapabilitiesReport()
+        }
+        
+        // Get optimized configuration
+        let optimizedConfig = NeuralEngineOptimizedConfiguration.optimized(for: capabilities)
+        
+        // Create ML model configuration with optimal compute units
+        let config = MLModelConfiguration()
+        config.computeUnits = optimizedConfig.computeUnits
+        
+        // Log optimization choices
+        print("🔧 Neural Engine Optimization Applied:")
+        print("   - Compute Units: \(computeUnitsDescription(optimizedConfig.computeUnits))")
+        print("   - Reduce Memory: \(optimizedConfig.reduceMemory)")
+        print("   - Attention: \(optimizedConfig.attentionImplementation)")
+        if let bits = optimizedConfig.recommendedQuantizationBits {
+            print("   - Recommended Quantization: \(bits)-bit")
+        }
+        
+        // Create pipeline with optimized settings
+        return try StableDiffusionPipeline(
+            resourcesAt: baseURL,
+            controlNet: controlNetModelNames,
+            configuration: config,
+            disableSafety: disableSafety,
+            reduceMemory: optimizedConfig.reduceMemory,
+            useMultilingualTextEncoder: useMultilingualTextEncoder,
+            script: script
+        )
+    }
+    
+    private static func computeUnitsDescription(_ units: MLComputeUnits) -> String {
+        switch units {
+        case .all: return "All (CPU, GPU, Neural Engine)"
+        case .cpuAndGPU: return "CPU and GPU"
+        case .cpuOnly: return "CPU Only"
+        case .cpuAndNeuralEngine: return "CPU and Neural Engine"
+        @unknown default: return "Unknown"
+        }
+    }
 }
