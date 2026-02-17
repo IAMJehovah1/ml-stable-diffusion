@@ -33,9 +33,9 @@ The newer library versions fixed the underlying issue, making the workaround unn
 
 ## Current Implementation (Verified)
 
-### Module-Level Patch (Lines 358-377 in torch2coreml.py)
+### Module-Level Patch
 
-The current codebase uses a more robust approach: patching the causal mask function at the **module level** rather than instance level.
+The current codebase uses a more robust approach: patching the causal mask function at the **module level** (in `torch2coreml.py`, lines 358-377) rather than instance level.
 
 ```python
 from transformers.models.clip import modeling_clip
@@ -61,13 +61,13 @@ modeling_clip._create_4d_causal_attention_mask = patched_make_causal_mask # For 
 
 All tensor creation operations in `patched_make_causal_mask` properly include the `device` parameter:
 
-1. **Line 367**: `torch.full(..., torch.tensor(-1e4, device=device), device=device)`
+1. **torch.full()**: `torch.full(..., torch.tensor(-1e4, device=device), device=device)`
    - Both the fill value tensor and the result tensor specify the device
 
-2. **Line 368**: `torch.arange(mask.size(-1), device=device)`
+2. **torch.arange()**: `torch.arange(mask.size(-1), device=device)`
    - Range tensor created on correct device
 
-3. **Line 373**: `torch.zeros(tgt_len, past_key_values_length, dtype=dtype, device=device)`
+3. **torch.zeros()**: `torch.zeros(tgt_len, past_key_values_length, dtype=dtype, device=device)`
    - Zero padding tensor created on correct device
 
 ### Advantages of Current Implementation
