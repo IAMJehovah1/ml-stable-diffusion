@@ -359,22 +359,47 @@ from transformers.models.clip import modeling_clip
 
 # Copied from https://github.com/huggingface/transformers/blob/v4.30.0/src/transformers/models/clip/modeling_clip.py#L677C1-L692C1
 # Starting from transformers >= 4.35.0, the _make_causal_mask function is replaced by _create_4d_causal_attention_mask in modeling_clip.
-# For backward compatibility with versions < 4.35.0, both functions are patched here.
+# Starting from transformers >= 5.0.0, it is replaced by create_causal_mask with a different signature.
+# For backward compatibility with all versions, all relevant functions are patched here.
 def patched_make_causal_mask(input_ids_shape, dtype, device, past_key_values_length: int = 0):
-    """ Patch to replace torch.finfo(dtype).min with -1e4
+    """ Patch to replace torch.finfo(dtype).min with -1e4 for Core ML compatibility.
+
+    Uses a scalar fill value to avoid device placement issues (e.g., on MPS devices)
+    that can arise when constructing fill-value tensors explicitly.
     """
     bsz, tgt_len = input_ids_shape
-    mask = torch.full((tgt_len, tgt_len), torch.tensor(-1e4, device=device), device=device)
+    mask = torch.full((tgt_len, tgt_len), -1e4, dtype=dtype, device=device)  # scalar avoids MPS device issues
     mask_cond = torch.arange(mask.size(-1), device=device)
     mask.masked_fill_(mask_cond < (mask_cond + 1).view(mask.size(-1), 1), 0)
-    mask = mask.to(dtype)
 
     if past_key_values_length > 0:
         mask = torch.cat([torch.zeros(tgt_len, past_key_values_length, dtype=dtype, device=device), mask], dim=-1)
     return mask[None, None, :, :].expand(bsz, 1, tgt_len, tgt_len + past_key_values_length)
-    
-modeling_clip._make_causal_mask = patched_make_causal_mask # For transformers >= 4.30.0 and transformers < 4.35.0
-modeling_clip._create_4d_causal_attention_mask = patched_make_causal_mask # For transformers >= 4.35.0
+
+if hasattr(modeling_clip, '_make_causal_mask'):
+    modeling_clip._make_causal_mask = patched_make_causal_mask # For transformers >= 4.30.0 and < 4.35.0
+
+if hasattr(modeling_clip, '_create_4d_causal_attention_mask'):
+    modeling_clip._create_4d_causal_attention_mask = patched_make_causal_mask # For transformers >= 4.35.0 and < 5.0.0
+
+if hasattr(modeling_clip, 'create_causal_mask'):
+    # For transformers >= 5.0.0, create_causal_mask replaced the older functions.
+    # Wrap the original to clamp mask values to -1e4 for Core ML compatibility.
+    _original_create_causal_mask = modeling_clip.create_causal_mask
+
+    def patched_create_causal_mask(config, inputs_embeds, attention_mask, cache_position, past_key_values, **kwargs):
+        """ Patch to clamp causal attention mask values to -1e4 for Core ML compatibility.
+
+        Replaces the default torch.finfo(dtype).min fill values (which can be extremely
+        negative, e.g. -3.4e38 for float32 or -65504 for float16) with -1e4 to prevent
+        numerical issues during Core ML inference while preserving causal masking semantics.
+        """
+        mask = _original_create_causal_mask(config, inputs_embeds, attention_mask, cache_position, past_key_values, **kwargs)
+        if mask is not None and isinstance(mask, torch.Tensor):
+            mask = mask.clamp(min=-1e4)
+        return mask
+
+    modeling_clip.create_causal_mask = patched_create_causal_mask
 
 def convert_text_encoder(text_encoder, tokenizer, submodule_name, args):
     """ Converts the text encoder component of Stable Diffusion
