@@ -15,7 +15,10 @@ let package = Package(
             targets: ["StableDiffusion"]),
         .executable(
             name: "StableDiffusionSample",
-            targets: ["StableDiffusionCLI"])
+            targets: ["StableDiffusionCLI"]),
+        .library(
+            name: "SafariExtension",
+            targets: ["SafariExtension"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.3"),
@@ -42,5 +45,12 @@ let package = Package(
                 .copy("Resources/vocab.json"),
                 .copy("Resources/merges.txt")
             ]),
+        .target(
+            name: "SafariExtension",
+            path: "swift/SafariExtension"),
+        .testTarget(
+            name: "SafariExtensionTests",
+            dependencies: ["SafariExtension"],
+            path: "swift/SafariExtensionTests"),
     ]
 )

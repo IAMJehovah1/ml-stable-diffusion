@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!-- For licensing see accompanying LICENSE.md file. -->
+<!-- Copyright (C) 2024 Apple Inc. All Rights Reserved. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML Content Highlighter</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>ML Content Highlighter</h1>
+    </header>
+
+    <main>
+      <!-- Master toggle -->
+      <section class="toggle-row">
+        <label for="enabledToggle">Enable highlighting</label>
+        <input type="checkbox" id="enabledToggle" role="switch" />
+      </section>
+
+      <!-- Category toggles -->
+      <section class="categories">
+        <h2>Highlight categories</h2>
+        <div class="toggle-row">
+          <label for="catKeyPoint">
+            <span class="swatch" id="swatchKeyPoint"></span>Key Points
+          </label>
+          <input type="checkbox" id="catKeyPoint" data-category="key-point" role="switch" />
+        </div>
+        <div class="toggle-row">
+          <label for="catSummary">
+            <span class="swatch" id="swatchSummary"></span>Summaries
+          </label>
+          <input type="checkbox" id="catSummary" data-category="summary" role="switch" />
+        </div>
+        <div class="toggle-row">
+          <label for="catAction">
+            <span class="swatch" id="swatchAction"></span>Action Items
+          </label>
+          <input type="checkbox" id="catAction" data-category="action-item" role="switch" />
+        </div>
+      </section>
+
+      <!-- Siri / manual search -->
+      <section class="search">
+        <h2>Find on page</h2>
+        <div class="search-row">
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Search or ask Siri…"
+            aria-label="Search or ask Siri"
+          />
+          <button id="searchBtn" aria-label="Find">&#x1F50D;</button>
+        </div>
+        <p id="searchStatus" aria-live="polite"></p>
+      </section>
+
+      <!-- Actions -->
+      <section class="actions">
+        <button id="highlightBtn" class="primary">Highlight Now</button>
+        <button id="clearBtn">Clear Highlights</button>
+      </section>
+    </main>
+
+    <footer>
+      <p>Powered by on-device ML &amp; Natural Language</p>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
