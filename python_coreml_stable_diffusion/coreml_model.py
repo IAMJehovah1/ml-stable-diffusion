@@ -19,6 +19,11 @@ import time
 import subprocess
 import sys
 
+from python_coreml_stable_diffusion.neural_engine import (
+    get_optimization_hints as _get_ne_optimization_hints,
+    get_recommended_compute_unit as _get_recommended_compute_unit,
+)
+
 
 def _macos_version():
     """
@@ -192,13 +197,20 @@ def _load_mlpackage(submodule_name,
             raise FileNotFoundError(
                 f"{submodule_name} CoreML model doesn't exist at {mlpackage_path}")
 
-    # On macOS 15+, set fast prediction optimization hint for the unet.
-    optimization_hints = None
-    if submodule_name == "unet" and _macos_version() >= (15, 0):
-        optimization_hints = {"specializationStrategy": ct.SpecializationStrategy.FastPrediction}
+    # On macOS 15+, set fast prediction optimization hint for all models on
+    # Apple Silicon.  On M4 the Neural Engine has ~2x the compute budget of M3
+    # (38 TOPS vs 18 TOPS), so FastPrediction is especially beneficial.
+    # Previously this hint was only applied to the unet; it is now applied to
+    # every submodule when the device supports it.
+    optimization_hints = _get_ne_optimization_hints()
+
+    # Resolve the special "AUTO" compute-unit token to the device-optimal value.
+    resolved_compute_unit = (
+        _get_recommended_compute_unit() if compute_unit == "AUTO" else compute_unit
+    )
 
     return CoreMLModel(mlpackage_path,
-                       compute_unit,
+                       resolved_compute_unit,
                        sources=sources,
                        optimization_hints=optimization_hints)
 
@@ -218,8 +230,11 @@ def _load_mlpackage_controlnet(mlpackages_dir, model_version, compute_unit):
         raise FileNotFoundError(
             f"controlnet_{model_name} CoreML model doesn't exist at {mlpackage_path}")
 
-    return CoreMLModel(mlpackage_path, compute_unit)
+    resolved_compute_unit = (
+        _get_recommended_compute_unit() if compute_unit == "AUTO" else compute_unit
+    )
+    return CoreMLModel(mlpackage_path, resolved_compute_unit)
 
 
 def get_available_compute_units():
-    return tuple(cu for cu in ct.ComputeUnit._member_names_)
+    return tuple(ct.ComputeUnit._member_names_) + ("AUTO",)

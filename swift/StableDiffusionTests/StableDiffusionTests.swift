@@ -60,4 +60,73 @@ final class StableDiffusionTests: XCTestCase {
             XCTAssertEqual(value, expected, accuracy: .ulpOfOne.squareRoot())
         }
     }
+
+    // MARK: - NeuralEngineDetector Tests
+
+    func test_neuralEngineDetector_hasNeuralEngine_returnsBoolWithoutCrashing() {
+        // `hasNeuralEngine` should always return a value without crashing,
+        // regardless of the host machine architecture.
+        let result = NeuralEngineDetector.hasNeuralEngine
+        // On Apple Silicon test machines this must be true; on Intel it must be false.
+        #if arch(arm64)
+        XCTAssertTrue(result, "hasNeuralEngine must be true on arm64 hardware")
+        #else
+        XCTAssertFalse(result, "hasNeuralEngine must be false on non-arm64 hardware")
+        #endif
+    }
+
+    func test_neuralEngineDetector_chipGeneration_returnsValidValue() {
+        // chipGeneration must return one of the known enum cases and must not crash.
+        let gen = NeuralEngineDetector.chipGeneration
+        let validCases: [NeuralEngineDetector.ChipGeneration] = [.m1, .m2, .m3, .m4, .unknown]
+        XCTAssertTrue(validCases.contains(gen), "chipGeneration returned an unexpected value: \(gen)")
+    }
+
+    func test_neuralEngineDetector_chipGeneration_consistentWithHasNeuralEngine() {
+        // When the chip generation is a known M-series chip, hasNeuralEngine must be true.
+        let gen = NeuralEngineDetector.chipGeneration
+        if gen != .unknown {
+            XCTAssertTrue(
+                NeuralEngineDetector.hasNeuralEngine,
+                "A known M-series chip was detected but hasNeuralEngine returned false"
+            )
+        }
+    }
+
+    func test_neuralEngineDetector_recommendedComputeUnits_matchesHasNeuralEngine() {
+        // recommendedComputeUnits should align with hasNeuralEngine.
+        let recommended = NeuralEngineDetector.recommendedComputeUnits
+        if NeuralEngineDetector.hasNeuralEngine {
+            XCTAssertEqual(
+                recommended,
+                .cpuAndNeuralEngine,
+                "Expected cpuAndNeuralEngine when Neural Engine is present"
+            )
+        } else {
+            XCTAssertEqual(
+                recommended,
+                .cpuAndGPU,
+                "Expected cpuAndGPU when Neural Engine is absent"
+            )
+        }
+    }
+
+    func test_neuralEngineDetector_optimizedConfiguration_setsRecommendedComputeUnits() {
+        let config = NeuralEngineDetector.optimizedConfiguration()
+        XCTAssertEqual(
+            config.computeUnits,
+            NeuralEngineDetector.recommendedComputeUnits,
+            "optimizedConfiguration() must set compute units to the recommended value"
+        )
+    }
+
+    func test_neuralEngineDetector_isM4OrNewer_consistentWithChipGeneration() {
+        let isM4 = NeuralEngineDetector.isM4OrNewer
+        let gen = NeuralEngineDetector.chipGeneration
+        if gen == .m4 {
+            XCTAssertTrue(isM4, "isM4OrNewer must be true when chipGeneration is .m4")
+        } else {
+            XCTAssertFalse(isM4, "isM4OrNewer must be false when chipGeneration is not .m4")
+        }
+    }
 }

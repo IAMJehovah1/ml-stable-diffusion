@@ -72,6 +72,7 @@ Target Device Hardware Generation:
 | iPhone 14 Pro Max     | `CPU_AND_NE`    |      `SPLIT_EINSUM_V2`       |      7.9               |        2.69              |
 | iPad Pro (M1)         | `CPU_AND_NE`    |      `SPLIT_EINSUM_V2`       |      11.2              |        2.19              |
 | iPad Pro (M2)         | `CPU_AND_NE`    |      `SPLIT_EINSUM_V2`       |      7.0               |        3.07              |
+| iPad Pro (M4)         | `CPU_AND_NE`    |      `SPLIT_EINSUM_V2`       |      ~3.5†             |        ~6.0†             |
 
 <details>
   <summary> Details (Click to expand) </summary>
@@ -89,6 +90,7 @@ Target Device Hardware Generation:
 - Note that the performance optimizations in this repository (e.g. `--attention-implementation`) are generally applicable to Transformers and not customized to Stable Diffusion. Better performance may be observed upon custom kernel tuning. Therefore, these numbers do not represent **peak** HW capability.
 - Performance may vary across different versions of Stable Diffusion due to architecture changes in the model itself. Each reported number is specific to the model version mentioned in that context.
 - Performance may vary due to factors like increased system load from other applications or suboptimal device thermal state.
+- `†` iPad Pro (M4) figures are projected estimates based on the Neural Engine compute budget increase (38 TOPS on M4 vs 18 TOPS on M3); they have not been measured on physical M4 hardware and are pending official benchmarking.
 
 </details>
 
@@ -151,7 +153,97 @@ Target Device Hardware Generation:
 </details>
 
 
-## <a name="compression-6-bits-and-higher"></a> Weight Compression (6-bits and higher)
+## <a name="neural-engine-detection"></a> Automatic Neural Engine Detection (M4 and Beyond)
+
+<details>
+  <summary> Details (Click to expand) </summary>
+
+All Apple Silicon devices (M1 and later) include a dedicated Neural Engine (NE).  The M4 chip nearly doubles the NE compute budget of M3 (38 TOPS vs 18 TOPS), making `CPU_AND_NE` the clear choice for image generation on iPads and Macs with M4.
+
+This repository provides automatic NE detection so that you **do not need to hand-pick a compute unit** on supported hardware.
+
+### Python
+
+The `python_coreml_stable_diffusion.neural_engine` module exposes several utilities:
+
+```python
+from python_coreml_stable_diffusion.neural_engine import (
+    is_apple_silicon,        # True on arm64 macOS
+    has_neural_engine,       # True on any Apple Silicon device
+    get_chip_generation,     # "M1" | "M2" | "M3" | "M4" | None
+    is_m4_or_newer,          # True when chip generation is M4
+    get_recommended_compute_unit,  # "CPU_AND_NE" or "CPU_AND_GPU"
+    get_optimization_hints,  # FastPrediction hints on macOS 15+ / iOS 18+
+)
+```
+
+When you omit `--compute-unit` (or pass `AUTO`) the pipeline defaults to the device-optimal compute unit automatically:
+
+```bash
+# Automatically selects CPU_AND_NE on Apple Silicon, CPU_AND_GPU elsewhere
+python -m python_coreml_stable_diffusion.pipeline --prompt "astronaut on the moon" \
+    -i <mlpackages-dir> -o <output-dir> --model-version stabilityai/stable-diffusion-2-1-base
+    # --compute-unit AUTO  ← this is the default; omit or specify explicitly
+```
+
+On **macOS 15 / iOS 18** and newer, the `FastPrediction` specialisation strategy is automatically applied to all Core ML sub-models (text encoder, UNet, VAE decoder) when a Neural Engine is detected.  This was previously limited to the UNet only.  On M4 the wider NE bus makes this especially effective.
+
+### Swift
+
+`NeuralEngineDetector` (part of the `StableDiffusion` Swift package) provides the same capabilities:
+
+```swift
+import StableDiffusion
+
+// Check for Neural Engine presence
+if NeuralEngineDetector.hasNeuralEngine {
+    print("Neural Engine available")
+}
+
+// Identify chip generation
+switch NeuralEngineDetector.chipGeneration {
+case .m4: print("Running on M4 – maximum NE throughput available")
+case .m3: print("M3")
+case .m2: print("M2")
+case .m1: print("M1")
+case .unknown: print("Unknown Apple Silicon or non-Apple-Silicon")
+}
+
+// Build an MLModelConfiguration pre-tuned for this device
+let config = NeuralEngineDetector.optimizedConfiguration()
+// config.computeUnits == .cpuAndNeuralEngine on Apple Silicon
+```
+
+The recommended approach for Swift apps is to call `NeuralEngineDetector.optimizedConfiguration()` before initialising the `StableDiffusionPipeline` and pass the resulting configuration:
+
+```swift
+let config = NeuralEngineDetector.optimizedConfiguration()
+let pipeline = try StableDiffusionPipeline(
+    resourcesAt: resourceURL,
+    controlNet: [],
+    configuration: config
+)
+```
+
+### Compute Unit Reference
+
+| `--compute-unit` / `MLComputeUnits` | Recommended for |
+|:------------------------------------|:----------------|
+| `AUTO` *(Python default)*           | Any device – auto-detects the best option |
+| `CPU_AND_NE`                        | Apple Silicon iPad and iPhone; M4 gives best NE throughput |
+| `CPU_AND_GPU`                       | Intel Mac; high-resolution SDXL on Apple Silicon Mac |
+| `ALL`                               | Lets Core ML decide at runtime |
+| `CPU_ONLY`                          | Debugging / reproducibility |
+
+### Backward Compatibility
+
+- On non-Apple-Silicon hardware `AUTO` resolves to `CPU_AND_GPU`.
+- On macOS 13 / iOS 16 (minimum supported) the `FastPrediction` hint is silently skipped.
+- Existing code that passes an explicit compute unit string (e.g. `"ALL"`) is unaffected.
+
+</details>
+
+
 
 <details>
   <summary> Details (Click to expand) </summary>

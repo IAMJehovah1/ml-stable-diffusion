@@ -1,1 +1,2 @@
 from ._version import __version__
+from python_coreml_stable_diffusion import neural_engine

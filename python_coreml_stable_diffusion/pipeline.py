@@ -36,6 +36,12 @@ from python_coreml_stable_diffusion.coreml_model import (
     _load_mlpackage_controlnet,
     get_available_compute_units,
 )
+from python_coreml_stable_diffusion.neural_engine import (
+    get_chip_generation,
+    get_recommended_compute_unit,
+    has_neural_engine,
+    is_m4_or_newer,
+)
 
 import time
 import torch  # Only used for `torch.from_tensor` in `pipe.scheduler.step()`
@@ -810,8 +816,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--compute-unit",
         choices=get_available_compute_units(),
-        default="ALL",
+        default="AUTO",
         help=("The compute units to be used when executing Core ML models. "
+              "Use \"AUTO\" (default) to let the pipeline select the optimal "
+              "compute unit for the current device (CPU_AND_NE on Apple Silicon, "
+              "CPU_AND_GPU otherwise). "
               f"Options: {get_available_compute_units()}"))
     parser.add_argument(
         "--scheduler",
