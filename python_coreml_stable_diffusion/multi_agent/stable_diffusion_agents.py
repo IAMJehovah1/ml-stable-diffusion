@@ -3,7 +3,7 @@
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
-"""Concrete agents specialised for Stable Diffusion pipeline sub-tasks."""
+"""Concrete agents specialized for Stable Diffusion pipeline sub-tasks."""
 
 import logging
 from typing import Any, Optional, Set
@@ -37,7 +37,7 @@ class DataPreprocessingAgent(Agent):
     def execute_task(self, task: Task) -> Any:
         """Simulate data-preprocessing work.
 
-        In a real deployment this method would normalise images, tokenise
+        In a real deployment this method would normalize images, tokenize
         prompts, compute statistics, etc.  Here it validates that the required
         inputs are present in ``task.metadata`` and returns a summary dict.
         """
