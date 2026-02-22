@@ -1,0 +1,40 @@
+/* For licensing see accompanying LICENSE.md file. */
+/* Copyright (C) 2024 Apple Inc. All Rights Reserved. */
+
+/**
+ * Styles injected into every page by the ML Content Highlighter extension.
+ * Highlighted spans receive the `.ml-highlight` class and a `data-ml-category`
+ * attribute so that category-specific rules can be applied.
+ */
+
+.ml-highlight {
+  border-radius: 2px;
+  padding: 0 2px;
+  transition: opacity 0.2s;
+}
+
+.ml-highlight[data-ml-category="key-point"] {
+  background-color: #FFEB3B;
+  color: inherit;
+}
+
+.ml-highlight[data-ml-category="summary"] {
+  background-color: #A5D6A7;
+  color: inherit;
+}
+
+.ml-highlight[data-ml-category="action-item"] {
+  background-color: #90CAF9;
+  color: inherit;
+}
+
+/* Subtle pulse animation on the first matched highlight after a Siri search */
+@keyframes ml-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.ml-highlight.ml-siri-match {
+  animation: ml-pulse 1s ease-in-out 2;
+}
