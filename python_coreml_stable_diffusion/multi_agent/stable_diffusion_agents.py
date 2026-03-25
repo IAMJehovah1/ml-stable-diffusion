@@ -88,7 +88,7 @@ class ModelFineTuningAgent(Agent):
         Real implementations would invoke training loops.  This stub logs the
         configuration and reports synthetic progress.
         """
-        self.report_progress(task.task_id, 0.1, "Initialising fine-tuning")
+        self.report_progress(task.task_id, 0.1, "Initializing fine-tuning")
 
         model_version = task.metadata.get("model_version", "<unspecified>")
         epochs = task.metadata.get("epochs", 1)
